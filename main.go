@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"io"
 	"text/template"
 )
 
@@ -36,14 +37,24 @@ func main() {
 	OutputName := "report"
 
 	// Parse input
-	// TODO: stdin or from file
-	var match Match
+	var matches []Match
 
-	err := json.NewDecoder(os.Stdin).Decode(&match)
-	if err != nil {
-		log.Fatal(err)
+	// TODO: stdin or from file
+	decoder := json.NewDecoder(os.Stdin)
+
+	for {
+		var match Match
+		if err := decoder.Decode(&match); err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatal(err)
+		}
+
+		matches = append(matches, match)
 	}
 
+	
 	var ct latex.CompileTask = latex.NewCompileTask()
 	ct.SetSourceDir(".") // Is this needed?
 	ct.SetVerbosity(latex.VerbosityAll)
@@ -63,7 +74,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = tmpl.Execute(tempFile, match)
+	err = tmpl.Execute(tempFile, matches)
 	if err != nil {
 		log.Fatal(err)
 	}

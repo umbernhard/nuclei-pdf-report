@@ -19,8 +19,10 @@
 
 % ---- Begin Content --- %
 
-{{.Info.Name}}
-{{.Info.Severity}}
+{{range .}}
+	{{.Info.Name}}
+	{{.Info.Severity}}
+{{end}}
 
 % ---- End Content ---- %
 
