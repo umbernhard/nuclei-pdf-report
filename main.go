@@ -2,40 +2,38 @@ package main
 
 import (
 	"github.com/jojomi/go-latex"
-	
+
 	"encoding/json"
-	"text/template"
 	"log"
 	"os"
+	"text/template"
 )
 
 type Info struct {
-	Name string `json:"name"`
+	Name     string `json:"name"`
 	Severity string `json:"severity"`
 }
 
 type Match struct {
-	Info Info `json:"info"`
+	Info         Info   `json:"info"`
 	TemplateType string `json:"type"`
-	Host string `json:"host"`
-	Port string `json:"port"`
-	URL string `json:"url"`
-	MatchedAt string `json:"matched-at"`
-	Request string `json:"request"`
-	Response string `json:"response"`
-	IP string `json:"ip"`
-	Timestamp string `json:"timestamp"`
-	CurlCommand string `json:"curl-command"`
+	Host         string `json:"host"`
+	Port         string `json:"port"`
+	URL          string `json:"url"`
+	MatchedAt    string `json:"matched-at"`
+	Request      string `json:"request"`
+	Response     string `json:"response"`
+	IP           string `json:"ip"`
+	Timestamp    string `json:"timestamp"`
+	CurlCommand  string `json:"curl-command"`
 }
 
 func main() {
-
 
 	// TODO: configify this
 	//WorkingDir := "/tmp/"
 	TemplateName := "template.tex"
 	OutputName := "report"
-
 
 	// Parse input
 	// TODO: stdin or from file
@@ -46,8 +44,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-
-	
 	var ct latex.CompileTask = latex.NewCompileTask()
 	ct.SetSourceDir(".") // Is this needed?
 	ct.SetVerbosity(latex.VerbosityAll)
@@ -60,7 +56,6 @@ func main() {
 
 	// Output tex file? Do we need to?
 	log.Println("Executing template", TemplateName)
-	
 
 	// create temp file
 	tempFile, err := os.CreateTemp("", "*.tex")
@@ -72,24 +67,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	/*
-	err = ct.ExecuteTemplate(tmpl, match,TemplateName, "")
-	if err != nil {
-		log.Fatal(err)
-	}
-	*/
 
 	// Run pdflatex
 	ct.SetCompileFilename(tempFile.Name())
-	log.Println("Generating PDF file:", OutputName +".pdf")
-	err = ct.Pdflatex(tempFile.Name(), "-jobname=" + OutputName)
+	log.Println("Generating PDF file:", OutputName+".pdf")
+	err = ct.Pdflatex(tempFile.Name(), "-jobname="+OutputName)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//ct.MoveToDest(, ".")
-	
 	// Clean up
 	ct.ClearLatexTempFiles(".")
 
