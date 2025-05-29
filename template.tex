@@ -2,6 +2,14 @@
 
 \usepackage{seqsplit}
 \usepackage{listings}
+\usepackage{xcolor}
+
+
+\definecolor{info}{RGB}{134, 192, 219}
+\definecolor{low}{RGB}{148, 235, 143}
+\definecolor{medium}{RGB}{245, 150, 34}
+\definecolor{high}{RGB}{245, 87, 34}
+\definecolor{critical}{RGB}{255, 1, 1}
 
 
 \begin{document}
@@ -21,7 +29,8 @@
 
 {{range .}}
 	{{.Info.Name}}
-	{{.Info.Severity}}
+
+	Severity: \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }
 {{end}}
 
 % ---- End Content ---- %
