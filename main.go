@@ -4,9 +4,9 @@ import (
 	"github.com/jojomi/go-latex"
 	
 	"encoding/json"
+	"text/template"
 	"log"
 	"os"
-	"text/template"
 )
 
 type Info struct {
@@ -30,9 +30,15 @@ type Match struct {
 
 func main() {
 
+
+	// TODO: configify this
+	//WorkingDir := "/tmp/"
+	TemplateName := "template.tex"
+	OutputName := "report"
+
+
 	// Parse input
 	// TODO: stdin or from file
-	//
 	var match Match
 
 	err := json.NewDecoder(os.Stdin).Decode(&match)
@@ -40,41 +46,51 @@ func main() {
 		log.Fatal(err)
 	}
 
+
+	
+	var ct latex.CompileTask = latex.NewCompileTask()
+	ct.SetSourceDir(".") // Is this needed?
+	ct.SetVerbosity(latex.VerbosityAll)
+
 	// populate LaTex template
-	// TODO: should I try to use text/template here?
-	template, err := template.ParseFiles("./template.tex")
+	tmpl, err := template.ParseFiles(TemplateName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Output tex file? Do we need to?
-	f, err := os.Create("/tmp/populated.tex")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = template.Execute(f, match)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
+	log.Println("Executing template", TemplateName)
 	
+
+	// create temp file
+	tempFile, err := os.CreateTemp("", "*.tex")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = tmpl.Execute(tempFile, match)
+	if err != nil {
+		log.Fatal(err)
+	}
+	/*
+	err = ct.ExecuteTemplate(tmpl, match,TemplateName, "")
+	if err != nil {
+		log.Fatal(err)
+	}
+	*/
+
 	// Run pdflatex
-	var ct latex.CompileTask = latex.NewCompileTask()
-	ct.SetSourceDir("/tmp")
-	ct.SetVerbosity(latex.VerbosityAll)
-	ct.SetCompileFilename("/tmp/populated.tex")
-	log.Println(ct.CompileFilenamePdf())
-	err = ct.Pdflatex("/tmp/populated.tex", "")
+	ct.SetCompileFilename(tempFile.Name())
+	log.Println("Generating PDF file:", OutputName +".pdf")
+	err = ct.Pdflatex(tempFile.Name(), "-jobname=" + OutputName)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ct.MoveToDest(ct.CompileFilenamePdf(), ".")
+	//ct.MoveToDest(, ".")
 	
-	//
 	// Clean up
+	ct.ClearLatexTempFiles(".")
 
 }
