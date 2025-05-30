@@ -4,6 +4,8 @@
 \usepackage{listings}
 \usepackage{xcolor}
 
+\usepackage{fancyvrb}
+\usepackage{fvextra}
 
 \definecolor{info}{RGB}{134, 192, 219}
 \definecolor{low}{RGB}{148, 235, 143}
@@ -12,6 +14,13 @@
 \definecolor{critical}{RGB}{255, 1, 1}
 
 \definecolor{bg}{RGB}{192, 193, 194}
+
+% This is a thing pandoc generates. Right now LaTeX is unhappy with raw
+% HTTP requests, so wrapping them in this may help.
+\newcommand{\NormalTok}[1]{#1}
+\newenvironment{Shaded}{}{}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+
 
 \lstdefinestyle{http}{
 	backgroundcolor=\color{bg},
@@ -39,11 +48,16 @@
 
 	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
 
-	\subsection{Request}
-		{{.Request}} 
+	%\subsection{Request}
+	Request
+	\begin{Highlighting}
+    {{.Request}} 
+	\end{Highlighting}
 
 	\subsection{Response}
-		{{- .Response -}}
+	\begin{Highlighting}
+    {{.Response}}
+	\end{Highlighting}
  
 {{end}}
 

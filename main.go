@@ -56,7 +56,7 @@ func findIndex(slice []string, value string) int {
 }
 
 // Process a response to make it nicer in the PDF
-func processResponse(response string) string {
+func processHttp(response string) string {
 
 	lines := strings.Split(response, "\r\n")
 
@@ -68,14 +68,13 @@ func processResponse(response string) string {
 			log.Debug("Found cookie")
 			outline = "\\seqsplit{" + line + "}"
 		}
-		// else {
-		// 	outline = "{\\verbatim" + line + "}"
+		// } else {
+		// 	outline = "\\NormalTok{" + line + "}"
 		// }
 		output = append(output, outline)
 	}
 
 	return strings.Join(output, "\r\n")
-
 }
 
 func preprocess(matches []Match) []Match {
@@ -91,9 +90,10 @@ func preprocess(matches []Match) []Match {
 	for i, match := range matches {
 
 		// Process requests(?)
-		//
+		match.Request = processHttp(match.Request)
+
 		// Process response
-		match.Response = processResponse(match.Response)
+		match.Response = processHttp(match.Response)
 
 		matches[i] = match
 	}
