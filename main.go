@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/jessevdk/go-flags"
 	"github.com/jojomi/go-latex"
+	"github.com/op/go-logging"
 
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,6 +14,18 @@ import (
 	"text/template"
 )
 
+// Setup log for output
+var log = logging.MustGetLogger("")
+
+// Example format string. Everything except the message has a custom color
+// which is dependent on the log level. Many fields have a custom output
+// formatting too, eg. the time returns the hour down to the milli second.
+var format = logging.MustStringFormatter(
+	`%{color}% %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+)
+
+// Structs for the json we're parsing.
+// TODO: maybe move this to a separate file?
 type Info struct {
 	Name     string `json:"name"`
 	Severity string `json:"severity"`
@@ -46,14 +59,13 @@ func findIndex(slice []string, value string) int {
 func processResponse(response string) string {
 
 	lines := strings.Split(response, "\r\n")
-	log.Println(len(lines))
 
 	var output []string
 
 	for _, line := range lines {
 		outline := line
 		if strings.Contains(line, "Cookie") {
-			log.Println("Found cookie")
+			log.Debug("Found cookie")
 			outline = "\\seqsplit{" + line + "}"
 		}
 		// else {
@@ -89,12 +101,38 @@ func preprocess(matches []Match) []Match {
 	return matches
 }
 
+var opts struct {
+	LatexVerbosity string `long:"latex-verbosity" description:"Set the verbosity for LaTeX output" default:"default" choice:"none" choice:"default" choice:"more" choice:"all"`
+	Verbosity      bool   `short:"v" long:"verbose" description:"Show verbose debugging information"`
+	Output         string `short:"o" long:"output" description:"Name of the PDF to output" default:"report"`
+	SaveTexFile    bool   `short:"s" long:"save-tex" description:"Save a copy of the .tex file (useful for debugging)"`
+	SaveAllTexFile bool   `long:"save-all-tex" description:"Save all files produced by LaTeX (.aux, .log, etc.)"`
+	Template       string `short:"t" long:"template" description:"The name of a template to use" default:"template.tex"`
+}
+
 func main() {
+
+	backend := logging.NewLogBackend(os.Stdout, "", 0)
+	backendFormatter := logging.NewBackendFormatter(backend, format)
+	backendLeveled := logging.AddModuleLevel(backendFormatter)
+
+	_, err := flags.Parse(&opts)
+	if flags.WroteHelp(err) {
+		return
+	} else if err != nil {
+		log.Critical(err)
+	}
+
+	backendLeveled.SetLevel(logging.ERROR, "")
+	if opts.Verbosity {
+		backendLeveled.SetLevel(logging.DEBUG, "")
+	}
+	logging.SetBackend(backendLeveled)
 
 	// TODO: configify this
 	//WorkingDir := "/tmp/"
-	TemplateName := "template.tex"
-	OutputName := "report"
+	TemplateName := opts.Template
+	OutputName := opts.Output
 
 	// Parse input
 	// TODO: order this by severity
@@ -111,7 +149,7 @@ func main() {
 			if err == io.EOF {
 				break
 			}
-			log.Fatal(err)
+			log.Critical(err)
 		}
 
 		matches = append(matches, match)
@@ -123,47 +161,63 @@ func main() {
 
 	var ct latex.CompileTask = latex.NewCompileTask()
 	ct.SetSourceDir(".") // Is this needed?
-	// TODO: parameterize this
-	ct.SetVerbosity(latex.VerbosityAll)
+
+	var latexVerbosity latex.VerbosityLevel
+	switch opts.LatexVerbosity {
+	case "all":
+		latexVerbosity = latex.VerbosityAll
+	case "more":
+		latexVerbosity = latex.VerbosityMore
+	case "none":
+		latexVerbosity = latex.VerbosityNone
+	case "default":
+	default:
+		latexVerbosity = latex.VerbosityDefault
+	}
+	ct.SetVerbosity(latexVerbosity)
 
 	// populate LaTex template
 	tmpl, err := template.ParseFiles(TemplateName)
 	if err != nil {
-		log.Fatal(err)
+		log.Critical(err)
 	}
 
 	// Output tex file? Do we need to?
-	log.Println("Executing template", TemplateName)
+	log.Debug("Executing template", TemplateName)
 
 	// create temp file
 	tempFile, err := os.CreateTemp("", "*.tex")
 	if err != nil {
-		log.Fatal(err)
+		log.Critical(err)
 	}
 
 	err = tmpl.Execute(tempFile, processed)
 	if err != nil {
-		log.Fatal(err)
+		log.Critical(err)
 	}
 
 	// Run pdflatex
 	ct.SetCompileFilename(tempFile.Name())
-	log.Println("Generating PDF file:", ct.CompileFilenamePdf())
+	log.Debug("Generating PDF file:", ct.CompileFilenamePdf())
 	err = ct.Pdflatex(tempFile.Name(), "")
 
 	if err != nil {
-		log.Fatal(err)
+		log.Critical(err)
 	}
 
 	// Clean up
 	// TODO: parameterize this for debugging
 	ct.ClearLatexTempFiles(".")
 	finalName := filepath.Base(ct.CompileFilenamePdf())
-	log.Println("Moving compiled file from", finalName, "to", OutputName+".pdf")
+	log.Debug("Moving compiled file from", finalName, "to", OutputName+".pdf")
 
 	err = os.Rename(finalName, OutputName+".pdf")
 	if err != nil {
-		log.Fatal(err)
+		log.Critical(err)
+	}
+
+	if opts.SaveTexFile {
+		err = os.Rename(ct.CompileFilename(), "./"+OutputName+".tex")
 	}
 
 }
