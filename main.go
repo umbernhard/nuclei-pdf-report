@@ -13,6 +13,8 @@ import (
 	"strings"
 	"text/template"
 	"regexp"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Setup log for output
@@ -57,9 +59,9 @@ func findIndex(slice []string, value string) int {
 }
 
 // Process a response to make it nicer in the PDF
-func processHttp(response string) string {
+func processHttp(httpobject string) string {
 
-	lines := strings.Split(response, "\r\n")
+	lines := strings.Split(httpobject, "\r\n")
 
 	var output []string
 
@@ -94,6 +96,9 @@ func preprocess(matches []Match) []Match {
 	})
 
 	for i, match := range matches {
+
+		// Rewrite the severity for pretier printing
+		match.Info.Severity = cases.Title(language.English, cases.NoLower).String(match.Info.Severity)
 
 		// Process requests(?)
 		match.Request = processHttp(match.Request)
