@@ -9,6 +9,7 @@ import (
 	"io"
 	"text/template"
 	"path/filepath"
+	"sort"
 )
 
 type Info struct {
@@ -28,6 +29,39 @@ type Match struct {
 	IP           string `json:"ip"`
 	Timestamp    string `json:"timestamp"`
 	CurlCommand  string `json:"curl-command"`
+}
+
+
+// Utils for sorting resultsby severity
+func findIndex(slice []string, value string) int {
+	for i, v := range slice {
+		if v == value {
+			return i
+		}
+	}
+	return len(slice) // Return length if not found (treat as lowest priority)
+}
+
+
+
+func preprocess(matches []Match) []Match {
+
+	// First sort by criticality
+	severityOrder := []string{"critical", "high", "medium", "low", "info"}
+	sort.Slice(matches, func(i, j int) bool {
+		indexI := findIndex(severityOrder, matches[i].Info.Severity)
+		indexJ := findIndex(severityOrder, matches[j].Info.Severity)
+		return indexI < indexJ
+	})
+
+	
+	var processed []Match
+
+
+
+	processed = matches
+
+	return processed
 }
 
 func main() {
@@ -59,6 +93,11 @@ func main() {
 		matches = append(matches, match)
 	}
 
+
+	// TODO: we need to preprocess, esepecially the HTTP requests
+	// because LaTeX/templates really struggle by themselves
+	processed := preprocess(matches)
+
 	
 	var ct latex.CompileTask = latex.NewCompileTask()
 	ct.SetSourceDir(".") // Is this needed?
@@ -79,7 +118,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = tmpl.Execute(tempFile, matches)
+	err = tmpl.Execute(tempFile, processed)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,8 +131,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-//	ct.MoveToDest(ct.CompileFilenamePdf(), OutputName + ".pdf")
 
 
 	// Clean up

@@ -11,6 +11,14 @@
 \definecolor{high}{RGB}{247, 133, 2}
 \definecolor{critical}{RGB}{255, 1, 1}
 
+\definecolor{bg}{RGB}{192, 193, 194}
+
+\lstdefinestyle{http}{
+	backgroundcolor=\color{bg},
+	basicstyle=\ttfamily\footnotesize,
+	breaklines=true
+}
+
 
 \begin{document}
 
@@ -28,9 +36,19 @@
 % ---- Begin Content --- %
 
 {{range .}}
-	{{.Info.Name}}
 
-	Severity: \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }
+	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
+
+	\subsection{Request}
+	\begin{lstlisting}[style=http]
+	{{.Request}}
+	\end{lstlisting} 
+
+	Response
+	\begin{lstlisting}[style=http]
+		{{- .Response -}}
+	\end{lstlisting} 
+t
 {{end}}
 
 % ---- End Content ---- %
