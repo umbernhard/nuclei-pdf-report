@@ -4,13 +4,13 @@ import (
 	"github.com/jojomi/go-latex"
 
 	"encoding/json"
+	"io"
 	"log"
 	"os"
-	"io"
-	"text/template"
 	"path/filepath"
 	"sort"
 	"strings"
+	"text/template"
 )
 
 type Info struct {
@@ -32,7 +32,6 @@ type Match struct {
 	CurlCommand  string `json:"curl-command"`
 }
 
-
 // Utils for sorting resultsby severity
 func findIndex(slice []string, value string) int {
 	for i, v := range slice {
@@ -42,7 +41,6 @@ func findIndex(slice []string, value string) int {
 	}
 	return len(slice) // Return length if not found (treat as lowest priority)
 }
-
 
 // Process a response to make it nicer in the PDF
 func processResponse(response string) string {
@@ -68,8 +66,6 @@ func processResponse(response string) string {
 
 }
 
-
-
 func preprocess(matches []Match) []Match {
 
 	// First sort by criticality
@@ -80,18 +76,15 @@ func preprocess(matches []Match) []Match {
 		return indexI < indexJ
 	})
 
-	
 	for i, match := range matches {
 
 		// Process requests(?)
-		// 
+		//
 		// Process response
 		match.Response = processResponse(match.Response)
 
 		matches[i] = match
 	}
-
-
 
 	return matches
 }
@@ -106,7 +99,6 @@ func main() {
 	// Parse input
 	// TODO: order this by severity
 	var matches []Match
-
 
 	// TODO: top-level stats?
 
@@ -125,12 +117,10 @@ func main() {
 		matches = append(matches, match)
 	}
 
-
 	// TODO: we need to preprocess, esepecially the HTTP requests
 	// because LaTeX/templates really struggle by themselves
 	processed := preprocess(matches)
 
-	
 	var ct latex.CompileTask = latex.NewCompileTask()
 	ct.SetSourceDir(".") // Is this needed?
 	// TODO: parameterize this
@@ -165,14 +155,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-
 	// Clean up
 	// TODO: parameterize this for debugging
 	ct.ClearLatexTempFiles(".")
 	finalName := filepath.Base(ct.CompileFilenamePdf())
-	log.Println("Moving compiled file from", finalName, "to", OutputName + ".pdf")
+	log.Println("Moving compiled file from", finalName, "to", OutputName+".pdf")
 
-	err = os.Rename(finalName, OutputName + ".pdf")
+	err = os.Rename(finalName, OutputName+".pdf")
 	if err != nil {
 		log.Fatal(err)
 	}
