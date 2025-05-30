@@ -8,6 +8,7 @@ import (
 	"os"
 	"io"
 	"text/template"
+	"path/filepath"
 )
 
 type Info struct {
@@ -37,7 +38,11 @@ func main() {
 	OutputName := "report"
 
 	// Parse input
+	// TODO: order this by severity
 	var matches []Match
+
+
+	// TODO: top-level stats?
 
 	// TODO: stdin or from file
 	decoder := json.NewDecoder(os.Stdin)
@@ -81,14 +86,24 @@ func main() {
 
 	// Run pdflatex
 	ct.SetCompileFilename(tempFile.Name())
-	log.Println("Generating PDF file:", OutputName+".pdf")
-	err = ct.Pdflatex(tempFile.Name(), "-jobname="+OutputName)
+	log.Println("Generating PDF file:", ct.CompileFilenamePdf())
+	err = ct.Pdflatex(tempFile.Name(), "")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
+//	ct.MoveToDest(ct.CompileFilenamePdf(), OutputName + ".pdf")
+
+
 	// Clean up
 	ct.ClearLatexTempFiles(".")
+	finalName := filepath.Base(ct.CompileFilenamePdf())
+	log.Println("Moving compiled file from", finalName, "to", OutputName + ".pdf")
+
+	err = os.Rename(finalName, OutputName + ".pdf")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
