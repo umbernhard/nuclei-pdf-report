@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"regexp"
 )
 
 // Setup log for output
@@ -64,9 +65,14 @@ func processHttp(response string) string {
 
 	for _, line := range lines {
 		outline := line
+		// If the line has a Cookie or a link in it, wrap the offending content
+		// in seqsplit so it doesn't overflow.
 		if strings.Contains(line, "Cookie") {
 			log.Debug("Found cookie")
 			outline = "\\seqsplit{" + line + "}"
+		} else if strings.Contains(line, "href") {
+			re := regexp.MustCompile(`href='(.*?)'`)
+			outline = re.ReplaceAllString(line, "\\seqsplit{href='$1'}")
 		}
 		// } else {
 		// 	outline = "\\NormalTok{" + line + "}"

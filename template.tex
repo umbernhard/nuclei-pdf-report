@@ -1,11 +1,11 @@
 \documentclass{article}
 
 \usepackage{seqsplit}
-\usepackage{listings}
 \usepackage{xcolor}
 
 \usepackage{fancyvrb}
 \usepackage{fvextra}
+\usepackage[margin=1in]{geometry}
 
 \definecolor{info}{RGB}{134, 192, 219}
 \definecolor{low}{RGB}{148, 235, 143}
@@ -13,19 +13,20 @@
 \definecolor{high}{RGB}{247, 133, 2}
 \definecolor{critical}{RGB}{255, 1, 1}
 
-\definecolor{bg}{RGB}{192, 193, 194}
+\definecolor{bg}{RGB}{240, 240, 240}
 
 % This is a thing pandoc generates. Right now LaTeX is unhappy with raw
 % HTTP requests, so wrapping them in this may help.
-\newcommand{\NormalTok}[1]{#1}
-\newenvironment{Shaded}{}{}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
-
-
-\lstdefinestyle{http}{
-	backgroundcolor=\color{bg},
-	basicstyle=\ttfamily\footnotesize,
-	breaklines=true
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+	fontsize=\footnotesize,
+	breaklines,
+	%numbers=left,
+	bgcolor=bg,
+	fillcolor=bg,
+	%xleftmargin=4mm,
+	%frame=single,
+	bgcolorpadding=4pt,
+	commandchars=\\\{\}
 }
 
 
@@ -48,16 +49,17 @@
 
 	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
 
-	%\subsection{Request}
-	Request
-	\begin{Highlighting}
-    {{.Request}} 
-	\end{Highlighting}
+	\subsection{Request}
 
-	\subsection{Response}
-	\begin{Highlighting}
-    {{.Response}}
-	\end{Highlighting}
+% Note, because we're in a verbatim environment, leading spaces are respected.
+    \begin{Highlighting}
+{{.Request}} 
+    \end{Highlighting}
+
+    \subsection{Response}
+    \begin{Highlighting}
+{{.Response}}
+    \end{Highlighting}
  
 {{end}}
 
