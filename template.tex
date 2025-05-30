@@ -40,15 +40,11 @@
 	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
 
 	\subsection{Request}
-	\begin{lstlisting}[style=http]
-	{{.Request}}
-	\end{lstlisting} 
+		{{.Request}} 
 
-	Response
-	\begin{lstlisting}[style=http]
+	\subsection{Response}
 		{{- .Response -}}
-	\end{lstlisting} 
-t
+ 
 {{end}}
 
 % ---- End Content ---- %

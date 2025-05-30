@@ -10,6 +10,7 @@ import (
 	"text/template"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 type Info struct {
@@ -43,6 +44,31 @@ func findIndex(slice []string, value string) int {
 }
 
 
+// Process a response to make it nicer in the PDF
+func processResponse(response string) string {
+
+	lines := strings.Split(response, "\r\n")
+	log.Println(len(lines))
+
+	var output []string
+
+	for _, line := range lines {
+		outline := line
+		if strings.Contains(line, "Cookie") {
+			log.Println("Found cookie")
+			outline = "\\seqsplit{" + line + "}"
+		}
+		// else {
+		// 	outline = "{\\verbatim" + line + "}"
+		// }
+		output = append(output, outline)
+	}
+
+	return strings.Join(output, "\r\n")
+
+}
+
+
 
 func preprocess(matches []Match) []Match {
 
@@ -55,13 +81,19 @@ func preprocess(matches []Match) []Match {
 	})
 
 	
-	var processed []Match
+	for i, match := range matches {
+
+		// Process requests(?)
+		// 
+		// Process response
+		match.Response = processResponse(match.Response)
+
+		matches[i] = match
+	}
 
 
 
-	processed = matches
-
-	return processed
+	return matches
 }
 
 func main() {
@@ -101,6 +133,7 @@ func main() {
 	
 	var ct latex.CompileTask = latex.NewCompileTask()
 	ct.SetSourceDir(".") // Is this needed?
+	// TODO: parameterize this
 	ct.SetVerbosity(latex.VerbosityAll)
 
 	// populate LaTex template
@@ -134,6 +167,7 @@ func main() {
 
 
 	// Clean up
+	// TODO: parameterize this for debugging
 	ct.ClearLatexTempFiles(".")
 	finalName := filepath.Base(ct.CompileFilenamePdf())
 	log.Println("Moving compiled file from", finalName, "to", OutputName + ".pdf")
