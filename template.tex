@@ -49,17 +49,22 @@
 
 	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
 
+	{{if .Request}}
+
 	\subsection{Request}
 
 % Note, because we're in a verbatim environment, leading spaces are respected.
     \begin{Highlighting}
 {{.Request}} 
     \end{Highlighting}
+	{{end}}
 
+	{{if .Response}}
     \subsection{Response}
     \begin{Highlighting}
 {{.Response}}
     \end{Highlighting}
+	{{end}}
  
 {{end}}
 
