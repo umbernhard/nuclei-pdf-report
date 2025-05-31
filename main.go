@@ -6,15 +6,15 @@ import (
 	"github.com/op/go-logging"
 
 	"encoding/json"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
-	"regexp"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // Max characters before seqsplit
@@ -33,8 +33,8 @@ var format = logging.MustStringFormatter(
 // Structs for the json we're parsing.
 // TODO: maybe move this to a separate file?
 type Info struct {
-	Name     string `json:"name"`
-	Severity string `json:"severity"`
+	Name        string `json:"name"`
+	Severity    string `json:"severity"`
 	Description string `json:"description"`
 }
 
@@ -78,7 +78,7 @@ func processHttp(httpobject string) string {
 
 		// These are characters in things like URLs that might need seqsplit
 		re := regexp.MustCompile("\\?|&")
-		needsSeqSplit = (re.MatchString(outline) && len(outline) > MAX) || strings.Contains(outline, "Cookie") 
+		needsSeqSplit = (re.MatchString(outline) && len(outline) > MAX) || strings.Contains(outline, "Cookie")
 		if needsSeqSplit {
 			log.Debug("Found cookie")
 			outline = "\\seqsplit{" + outline + "}"
@@ -87,22 +87,18 @@ func processHttp(httpobject string) string {
 			outline = re.ReplaceAllString(outline, "\\seqsplit{href='$1'}")
 		}
 
-
-		// } else {
-		// 	outline = "\\NormalTok{" + line + "}"
-		// }
 		output = append(output, outline)
 	}
 
 	return strings.Join(output, "\r\n")
 }
 
-// Fix LaTeX unfriendly characters 
+// Fix LaTeX unfriendly characters
 func sanitize(input string) string {
 
 	replace := strings.NewReplacer("{", "\\{", "}", "\\}", "_", "\\_", "&", "\\&")
 	return replace.Replace(input)
-	
+
 }
 
 func preprocess(matches []Match) []Match {

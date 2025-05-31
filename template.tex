@@ -50,7 +50,9 @@
 
 	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
 
+	{{if .Info.Description}}
 	Description: {{ .Info.Description }}
+	{{end}}
 
 	{{if .Request}}
 
