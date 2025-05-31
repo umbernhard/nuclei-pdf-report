@@ -17,6 +17,9 @@ import (
 	"golang.org/x/text/language"
 )
 
+// Max characters before seqsplit
+const MAX = 110
+
 // Setup log for output
 var log = logging.MustGetLogger("")
 
@@ -32,6 +35,7 @@ var format = logging.MustStringFormatter(
 type Info struct {
 	Name     string `json:"name"`
 	Severity string `json:"severity"`
+	Description string `json:"description"`
 }
 
 type Match struct {
@@ -66,16 +70,24 @@ func processHttp(httpobject string) string {
 	var output []string
 
 	for _, line := range lines {
-		outline := line
+		// Remove characters LaTeX doesn't like
+		outline := sanitize(line)
 		// If the line has a Cookie or a link in it, wrap the offending content
 		// in seqsplit so it doesn't overflow.
-		if strings.Contains(line, "Cookie") {
+		needsSeqSplit := false
+
+		// These are characters in things like URLs that might need seqsplit
+		re := regexp.MustCompile("\\?|&")
+		needsSeqSplit = (re.MatchString(outline) && len(outline) > MAX) || strings.Contains(outline, "Cookie") 
+		if needsSeqSplit {
 			log.Debug("Found cookie")
-			outline = "\\seqsplit{" + line + "}"
-		} else if strings.Contains(line, "href") {
+			outline = "\\seqsplit{" + outline + "}"
+		} else if strings.Contains(outline, "href") {
 			re := regexp.MustCompile(`href='(.*?)'`)
-			outline = re.ReplaceAllString(line, "\\seqsplit{href='$1'}")
+			outline = re.ReplaceAllString(outline, "\\seqsplit{href='$1'}")
 		}
+
+
 		// } else {
 		// 	outline = "\\NormalTok{" + line + "}"
 		// }
@@ -83,6 +95,14 @@ func processHttp(httpobject string) string {
 	}
 
 	return strings.Join(output, "\r\n")
+}
+
+// Fix LaTeX unfriendly characters 
+func sanitize(input string) string {
+
+	replace := strings.NewReplacer("{", "\\{", "}", "\\}", "_", "\\_", "&", "\\&")
+	return replace.Replace(input)
+	
 }
 
 func preprocess(matches []Match) []Match {
@@ -96,6 +116,9 @@ func preprocess(matches []Match) []Match {
 	})
 
 	for i, match := range matches {
+
+		match.Info.Name = sanitize(match.Info.Name)
+		match.Info.Description = sanitize(match.Info.Description)
 
 		// Rewrite the severity for pretier printing
 		match.Info.Severity = cases.Title(language.English, cases.NoLower).String(match.Info.Severity)

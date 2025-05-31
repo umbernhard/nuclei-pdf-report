@@ -20,6 +20,7 @@
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
 	fontsize=\footnotesize,
 	breaklines,
+	breakafter=\,,
 	%numbers=left,
 	bgcolor=bg,
 	fillcolor=bg,
@@ -48,6 +49,8 @@
 {{range .}}
 
 	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
+
+	Description: {{ .Info.Description }}
 
 	{{if .Request}}
 
