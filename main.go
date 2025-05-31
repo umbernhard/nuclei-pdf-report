@@ -54,11 +54,11 @@ type Match struct {
 
 type Summary struct {
 	NumCritical int
-	NumHigh int
-	NumMedium int
-	NumLow int
-	NumInfo int
-	Total int
+	NumHigh     int
+	NumMedium   int
+	NumLow      int
+	NumInfo     int
+	Total       int
 }
 
 type Report struct {
@@ -206,7 +206,7 @@ func main() {
 		case "medium":
 			summary.NumMedium++
 		case "low":
-	 		summary.NumLow++
+			summary.NumLow++
 		case "info":
 			summary.NumInfo++
 		}
@@ -251,7 +251,6 @@ func main() {
 		log.Critical(err)
 	}
 
-
 	var report Report
 	report.Summary = summary
 	report.Matches = processed
@@ -264,10 +263,17 @@ func main() {
 	// Run pdflatex
 	ct.SetCompileFilename(tempFile.Name())
 	log.Debug("Generating PDF file:", ct.CompileFilenamePdf())
-	err = ct.Pdflatex(tempFile.Name(), "")
 
-	if err != nil {
-		log.Critical(err)
+	// Because LaTeX is voodoo, we have to run it more than once to get
+	// things like tables of contents to render. Make sure you turn around
+	// three times and spit while this is running for good measure.
+	for i := range 3 {
+		log.Debugf("Iteration %d of pdflatex", i+1)
+		err = ct.Pdflatex(tempFile.Name(), "")
+
+		if err != nil {
+			log.Critical(err)
+		}
 	}
 
 	// Clean up
