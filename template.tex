@@ -1,19 +1,24 @@
 \documentclass{article}
 
 \usepackage{seqsplit}
-\usepackage{xcolor}
+\usepackage[table]{xcolor}
+\usepackage{makecell}
 
 \usepackage{fancyvrb}
 \usepackage{fvextra}
 \usepackage[margin=1in]{geometry}
 
+\usepackage{etoc}
+\setcounter{tocdepth}{2}
+
 \definecolor{Info}{RGB}{134, 192, 219}
 \definecolor{Low}{RGB}{148, 235, 143}
 \definecolor{Medium}{RGB}{255, 221, 3}
 \definecolor{High}{RGB}{247, 133, 2}
-\definecolor{Critical}{RGB}{255, 1, 1}
+\definecolor{Critical}{RGB}{255, 100, 100}
 
 \definecolor{bg}{RGB}{240, 240, 240}
+\definecolor{white}{RGB}{255, 255, 255}
 
 % This is a thing pandoc generates. Right now LaTeX is unhappy with raw
 % HTTP requests, so wrapping them in this may help.
@@ -44,11 +49,41 @@
 \end{center}
 \end{titlepage}
 
-% ---- Begin Content --- %
+% ---- Begin Content ---- %
 
-{{range .}}
+% ---- Summary ---- %
+\section{Summary}
 
-	\section{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
+Overall, this scan found {{.Summary.Total}} issues.
+
+\begin{center}
+
+
+\newcolumntype{C}{>{\columncolor{Critical}} p{2cm}}
+\newcolumntype{H}{>{\columncolor{High}} p{2cm}}
+\newcolumntype{M}{>{\columncolor{Medium}} p{2cm}}
+\newcolumntype{L}{>{\columncolor{Low}} p{2cm}}
+\newcolumntype{I}{>{\columncolor{Info}} p{2cm}}
+\newcolumntype{B}{>{\columncolor{white}} p{0.5mm}}
+
+\renewcommand{\arraystretch}{1.5} % Default value: 1
+
+\begin{tabular}{CBHBMBLBI}
+	\makecell{\\[1.5mm] \textbf{Critical}\\{{.Summary.NumCritical}} \\ \\[1mm] } & &
+	\makecell{\\[1.5mm] \textbf{High}\\{{.Summary.NumHigh}} \\ \\[1mm] } & &
+	\makecell{\\[1.5mm] \textbf{Medium}\\{{.Summary.NumMedium}} \\ \\[1mm]}& & 
+	\makecell{\\[1.5mm] \textbf{Low}\\{{.Summary.NumLow}} \\ \\[1mm]} & &
+	\makecell{\\[1.5mm] \textbf{Info}\\{{.Summary.NumInfo}} \\ \\[1mm]} 
+\end{tabular}
+\end{center}
+
+\section{Detailed Findings}
+
+\localtableofcontents
+
+{{range .Matches}}
+
+	\subsection{ \colorbox{ {{- .Info.Severity -}} }{ {{- .Info.Severity -}} }~{{- .Info.Name -}} }
 
 	{{if .Info.Description}}
 	Description: {{ .Info.Description }}
@@ -56,7 +91,7 @@
 
 	{{if .Request}}
 
-	\subsection{Request}
+	\subsubsection{Request}
 
 % Note, because we're in a verbatim environment, leading spaces are respected.
     \begin{Highlighting}
@@ -65,7 +100,7 @@
 	{{end}}
 
 	{{if .Response}}
-    \subsection{Response}
+    \subsubsection{Response}
     \begin{Highlighting}
 {{.Response}}
     \end{Highlighting}

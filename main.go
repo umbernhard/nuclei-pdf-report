@@ -52,6 +52,20 @@ type Match struct {
 	CurlCommand  string `json:"curl-command"`
 }
 
+type Summary struct {
+	NumCritical int
+	NumHigh int
+	NumMedium int
+	NumLow int
+	NumInfo int
+	Total int
+}
+
+type Report struct {
+	Summary Summary
+	Matches []Match
+}
+
 // Utils for sorting resultsby severity
 func findIndex(slice []string, value string) int {
 	for i, v := range slice {
@@ -164,6 +178,8 @@ func main() {
 	TemplateName := opts.Template
 	OutputName := opts.Output
 
+	var summary Summary
+
 	// Parse input
 	// TODO: order this by severity
 	var matches []Match
@@ -182,8 +198,22 @@ func main() {
 			log.Critical(err)
 		}
 
+		switch match.Info.Severity {
+		case "critical":
+			summary.NumCritical++
+		case "high":
+			summary.NumHigh++
+		case "medium":
+			summary.NumMedium++
+		case "low":
+	 		summary.NumLow++
+		case "info":
+			summary.NumInfo++
+		}
+
 		matches = append(matches, match)
 	}
+	summary.Total = len(matches)
 
 	// TODO: we need to preprocess, esepecially the HTTP requests
 	// because LaTeX/templates really struggle by themselves
@@ -221,7 +251,12 @@ func main() {
 		log.Critical(err)
 	}
 
-	err = tmpl.Execute(tempFile, processed)
+
+	var report Report
+	report.Summary = summary
+	report.Matches = processed
+
+	err = tmpl.Execute(tempFile, report)
 	if err != nil {
 		log.Critical(err)
 	}
