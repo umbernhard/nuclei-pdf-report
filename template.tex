@@ -62,7 +62,7 @@
 \section{Summary}
 
 Overall, this scan found \num{ {{.Summary.Total}} } issues. {{if .Summary.Stats.Hosts}}
-	{{.Summary.Stats.Hosts}} host(s) were scanned, starting at {{.Summary.Stats.StartedAt}} and lasting {{.Summary.Stats.Duration}}. \SI{ {{.Summary.Stats.Templates}}} templates were used, with \SI{ {{.Summary.Stats.TotalRequests}}} requests sent and \SI{ {{.Summary.Stats.Errors}} } errors.
+	{{.Summary.Stats.Hosts}} endpoint(s) were scanned, starting at {{.Summary.Stats.StartedAt}} and lasting {{.Summary.Stats.Duration}}. \SI{ {{.Summary.Stats.Templates}}} templates were used, with \SI{ {{.Summary.Stats.TotalRequests}}} requests sent and \SI{ {{.Summary.Stats.Errors}} } errors.
 {{end}}
 
 \begin{center}
