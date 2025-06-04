@@ -57,7 +57,9 @@
 % ---- Summary ---- %
 \section{Summary}
 
-Overall, this scan found {{.Summary.Total}} issues.
+Overall, this scan found \textbf{ {{.Summary.Total}} } issues. {{if .Summary.Stats.Hosts}}
+	{{.Summary.Stats.Hosts}} host(s) were scanned, starting at {{.Summary.Stats.StartedAt}} and lasting {{.Summary.Stats.Duration}}. {{.Summary.Stats.Templates}} templates were used, with {{.Summary.Stats.TotalRequests}} requests sent and {{.Summary.Stats.Errors}} errors.
+{{end}}
 
 \begin{center}
 

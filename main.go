@@ -6,8 +6,7 @@ import (
 	"github.com/op/go-logging"
 
 	"encoding/json"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +14,10 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Max characters before seqsplit
@@ -59,6 +62,18 @@ type Summary struct {
 	NumLow      int
 	NumInfo     int
 	Total       int
+	Stats       Stats
+}
+
+type Stats struct {
+	Duration      string `json:"duration"`
+	Errors        string `json:"errors"`
+	Hosts         string `json:"hosts"`
+	Matched       string `json:"matched"`
+	Requests      string `json:"requests"`
+	StartedAt     string `json:"startedAt"`
+	Templates     string `json:"templates"`
+	TotalRequests string `json:"total"`
 }
 
 type Report struct {
@@ -145,6 +160,17 @@ func preprocess(matches []Match) []Match {
 	return matches
 }
 
+// Compute a duration from a string like hh:mm:ss
+// adapted from https://stackoverflow.com/a/47067368
+func ParseDuration(st string) (string, error) {
+	var h, m, s int
+	n, err := fmt.Sscanf(st, "%d:%d:%d", &h, &m, &s)
+	if err != nil || n != 3 {
+		return "", err
+	}
+	return fmt.Sprintf("%dh%dm%ds", h, m, s), nil
+}
+
 var opts struct {
 	LatexVerbosity string `long:"latex-verbosity" description:"Set the verbosity for LaTeX output" default:"default" choice:"none" choice:"default" choice:"more" choice:"all"`
 	Verbosity      bool   `short:"v" long:"verbose" description:"Show verbose debugging information"`
@@ -152,6 +178,8 @@ var opts struct {
 	SaveTexFile    bool   `short:"s" long:"save-tex" description:"Save a copy of the .tex file (useful for debugging)"`
 	SaveAllTexFile bool   `long:"save-all-tex" description:"Save all files produced by LaTeX (.aux, .log, etc.)"`
 	Template       string `short:"t" long:"template" description:"The name of a template to use" default:"template.tex"`
+	JsonFilename   string `short:"j" long:"jsonl-filename" description:"The name of the file containing the jsonl scan output"`
+	StatsFilename  string `long:"stats-filename" description:"The name of the file containing a nuclei stats json object"`
 }
 
 func main() {
@@ -165,6 +193,7 @@ func main() {
 		return
 	} else if err != nil {
 		log.Critical(err)
+		os.Exit(1)
 	}
 
 	backendLeveled.SetLevel(logging.ERROR, "")
@@ -173,21 +202,30 @@ func main() {
 	}
 	logging.SetBackend(backendLeveled)
 
-	// TODO: configify this
-	//WorkingDir := "/tmp/"
 	TemplateName := opts.Template
 	OutputName := opts.Output
 
 	var summary Summary
 
 	// Parse input
-	// TODO: order this by severity
 	var matches []Match
 
 	// TODO: top-level stats?
+	//
+	var decoder *json.Decoder
 
-	// TODO: stdin or from file
-	decoder := json.NewDecoder(os.Stdin)
+	if opts.JsonFilename == "" {
+		decoder = json.NewDecoder(os.Stdin)
+	} else {
+		jsonFile, err := os.Open(opts.JsonFilename)
+		if err != nil {
+			log.Critical(err)
+			os.Exit(1)
+		}
+		defer jsonFile.Close()
+
+		decoder = json.NewDecoder(jsonFile)
+	}
 
 	for {
 		var match Match
@@ -196,6 +234,7 @@ func main() {
 				break
 			}
 			log.Critical(err)
+			os.Exit(1)
 		}
 
 		switch match.Info.Severity {
@@ -206,7 +245,7 @@ func main() {
 		case "medium":
 			summary.NumMedium++
 		case "low":
-			summary.NumLow++
+			// summary.NumLow++
 		case "info":
 			summary.NumInfo++
 		}
@@ -214,6 +253,50 @@ func main() {
 		matches = append(matches, match)
 	}
 	summary.Total = len(matches)
+
+	// We expect the stats file to be a redirect of stderr from  `nuclei -silent -stats -j`
+	// `-silent` is required to supporess non-JSON output
+	//
+	// We only care about the last json object that is produced, since these are in-progress stats
+	var stats Stats
+	if opts.StatsFilename != "" {
+		statsFile, err := os.Open(opts.StatsFilename)
+		if err != nil {
+			log.Critical(err)
+			os.Exit(1)
+		}
+
+		defer statsFile.Close()
+
+		decoder = json.NewDecoder(statsFile)
+		for {
+			if err := decoder.Decode(&stats); err != nil {
+				if err == io.EOF {
+					break
+				}
+				log.Critical(err)
+				os.Exit(1)
+			}
+		}
+
+		var startedAt time.Time
+		err = startedAt.UnmarshalText([]byte(stats.StartedAt))
+		if err != nil {
+			log.Critical(err)
+			os.Exit(1)
+		}
+		stats.StartedAt = startedAt.Format("3:04 PM MST on Monday, January _2 2006")
+
+		// Fix time formatting for pretty printing
+		stats.Duration, err = ParseDuration(stats.Duration)
+		if err != nil {
+			log.Critical("Could not parse scan duration", err)
+			os.Exit(1)
+		}
+
+		// We only care about the last stats object
+		summary.Stats = stats
+	}
 
 	// TODO: we need to preprocess, esepecially the HTTP requests
 	// because LaTeX/templates really struggle by themselves
@@ -240,6 +323,7 @@ func main() {
 	tmpl, err := template.ParseFiles(TemplateName)
 	if err != nil {
 		log.Critical(err)
+		os.Exit(1)
 	}
 
 	// Output tex file? Do we need to?
@@ -249,6 +333,7 @@ func main() {
 	tempFile, err := os.CreateTemp("", "*.tex")
 	if err != nil {
 		log.Critical(err)
+		os.Exit(1)
 	}
 
 	var report Report
@@ -258,6 +343,7 @@ func main() {
 	err = tmpl.Execute(tempFile, report)
 	if err != nil {
 		log.Critical(err)
+		os.Exit(1)
 	}
 
 	// Run pdflatex
@@ -273,6 +359,7 @@ func main() {
 
 		if err != nil {
 			log.Critical(err)
+			os.Exit(1)
 		}
 	}
 
@@ -285,6 +372,7 @@ func main() {
 	err = os.Rename(finalName, OutputName+".pdf")
 	if err != nil {
 		log.Critical(err)
+		os.Exit(1)
 	}
 
 	if opts.SaveTexFile {
