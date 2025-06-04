@@ -245,7 +245,7 @@ func main() {
 		case "medium":
 			summary.NumMedium++
 		case "low":
-			// summary.NumLow++
+			summary.NumLow++
 		case "info":
 			summary.NumInfo++
 		}

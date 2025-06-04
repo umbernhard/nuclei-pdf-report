@@ -10,6 +10,8 @@
 
 \usepackage[T1]{fontenc}
 
+\usepackage{hyperref}
+
 \usepackage{siunitx}
 \sisetup{group-separator={,},group-minimum-digits=4}
 
@@ -94,6 +96,12 @@ Overall, this scan found \num{ {{.Summary.Total}} } issues. {{if .Summary.Stats.
 
 	{{if .Info.Description}}
 	Description: {{ .Info.Description }}
+	{{end}}
+
+	{{if .MatchedAt }}
+	\smallskip
+	\noindent
+	\textbf{Endpoint: }\url{ {{ .MatchedAt}} }\\
 	{{end}}
 
 	{{if .Request}}
