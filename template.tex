@@ -24,6 +24,8 @@
 \definecolor{High}{RGB}{247, 133, 2}
 \definecolor{Critical}{RGB}{255, 100, 100}
 
+\definecolor{Greyed}{RGB}{240, 240, 240}
+
 \definecolor{bg}{RGB}{240, 240, 240}
 \definecolor{white}{RGB}{255, 255, 255}
 
@@ -74,10 +76,23 @@ Overall, this scan found \num{ {{.Summary.Total}} } issues. {{if .Summary.Stats.
 \newcolumntype{L}{>{\columncolor{Low}} p{2cm}}
 \newcolumntype{I}{>{\columncolor{Info}} p{2cm}}
 \newcolumntype{B}{>{\columncolor{white}} p{0.5mm}}
+\newcolumntype{G}{>{\columncolor{Greyed}} p{2cm}}
+
+
 
 \renewcommand{\arraystretch}{1.5} % Default value: 1
 
-\begin{tabular}{CBHBMBLBI}
+\begin{tabular}{
+{{if eq .Summary.NumCritical 0}}G{{else}}C{{end}}
+B
+{{if eq .Summary.NumHigh 0}}G{{else}}H{{end}}
+B
+{{if eq .Summary.NumMedium 0}}G{{else}}M{{end}}
+B
+{{if eq .Summary.NumLow 0}}G{{else}}L{{end}}
+B
+{{if eq .Summary.NumInfo 0}}G{{else}}I{{end}}
+}
 	\makecell{\\[1.5mm] \textbf{Critical}\\{{.Summary.NumCritical}} \\ \\[1mm] } & &
 	\makecell{\\[1.5mm] \textbf{High}\\{{.Summary.NumHigh}} \\ \\[1mm] } & &
 	\makecell{\\[1.5mm] \textbf{Medium}\\{{.Summary.NumMedium}} \\ \\[1mm]}& & 
