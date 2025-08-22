@@ -21,7 +21,8 @@ import (
 )
 
 // Max characters before seqsplit
-const MAX = 110
+const LINE_MAX = 110
+const WORD_MAX = 30
 
 // Setup log for output
 var log = logging.MustGetLogger("")
@@ -107,7 +108,7 @@ func processHttp(httpobject string) string {
 
 		// These are characters in things like URLs that might need seqsplit
 		re := regexp.MustCompile(`\?|&`)
-		needsSeqSplit = (re.MatchString(outline) && len(outline) > MAX) || strings.Contains(outline, "Cookie")
+		needsSeqSplit = (re.MatchString(outline) && len(outline) > LINE_MAX) || strings.Contains(outline, "Cookie")
 		if needsSeqSplit {
 			log.Debug("Found cookie")
 			outline = "\\seqsplit{" + outline + "}"
@@ -126,13 +127,37 @@ func processHttp(httpobject string) string {
 func processURL(url string) string {
 	url = sanitize(url)
 	log.Debug("Processing URL")
-	if len(url) > MAX {
+	if len(url) > LINE_MAX {
 		url = "\\seqsplit{" + url + "}"
 	} else {
 		url = "\\url{" + url + "}"
 	}
 
 	return url
+}
+
+// This feels pretty ugly, but basically if a given line in the description is too long, wrap
+// all of its words in a seqsplit so that they break when needed.
+func processDescription(description string) string {
+	description = sanitize(description)
+
+	lines := strings.Split(description, "\n")
+
+	for i, line := range lines {
+		if len(line) > LINE_MAX {
+			// split on whitespace?
+			words := strings.Split(line, " ")
+			for j, word := range words {
+				if len(word) > WORD_MAX {
+					words[j] = "\\seqsplit{" + word + "}"
+				}
+			}
+			lines[i] = strings.Join(words, " ")
+		}
+	}
+	description = strings.Join(lines, "\n")
+
+	return description
 }
 
 // Fix LaTeX unfriendly characters
@@ -156,7 +181,7 @@ func preprocess(matches []Match) []Match {
 	for i, match := range matches {
 
 		match.Info.Name = sanitize(match.Info.Name)
-		match.Info.Description = sanitize(match.Info.Description)
+		match.Info.Description = processDescription(match.Info.Description)
 
 		// Rewrite the severity for pretier printing
 		match.Info.Severity = cases.Title(language.English, cases.NoLower).String(match.Info.Severity)
