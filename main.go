@@ -95,11 +95,21 @@ func findIndex(slice []string, value string) int {
 // Process a response to make it nicer in the PDF
 func processHttp(httpobject string) string {
 
+	// TODO: make this a cmdline param
+	const MAX_LINES = 10
+
 	lines := strings.Split(httpobject, "\r\n")
+	log.Debug("HTTP object has " + fmt.Sprintf("%d", len(lines)) + " lines")
 
 	var output []string
 
-	for _, line := range lines {
+	for i, line := range lines {
+
+		if i > MAX_LINES {
+			log.Debug("Truncating HTTP output")
+			output = append(output, "... (truncated)")
+			break
+		}
 		// Remove characters LaTeX doesn't like
 		outline := sanitize(line)
 		// If the line has a Cookie or a link in it, wrap the offending content
