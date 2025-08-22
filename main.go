@@ -106,7 +106,7 @@ func processHttp(httpobject string) string {
 		needsSeqSplit := false
 
 		// These are characters in things like URLs that might need seqsplit
-		re := regexp.MustCompile("\\?|&")
+		re := regexp.MustCompile(`\?|&`)
 		needsSeqSplit = (re.MatchString(outline) && len(outline) > MAX) || strings.Contains(outline, "Cookie")
 		if needsSeqSplit {
 			log.Debug("Found cookie")
@@ -222,7 +222,12 @@ func main() {
 			log.Critical(err)
 			os.Exit(1)
 		}
-		defer jsonFile.Close()
+		defer func() {
+			if err := jsonFile.Close(); err != nil {
+				log.Critical(err)
+				os.Exit(1)
+			}
+		}()
 
 		decoder = json.NewDecoder(jsonFile)
 	}
@@ -266,7 +271,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		defer statsFile.Close()
+		defer func() {
+			if err := statsFile.Close(); err != nil {
+				log.Critical(err)
+				os.Exit(1)
+			}
+		}()
 
 		decoder = json.NewDecoder(statsFile)
 		for {
@@ -302,7 +312,7 @@ func main() {
 	// because LaTeX/templates really struggle by themselves
 	processed := preprocess(matches)
 
-	var ct latex.CompileTask = latex.NewCompileTask()
+	var ct = latex.NewCompileTask()
 	ct.SetSourceDir(".") // Is this needed?
 
 	var latexVerbosity latex.VerbosityLevel
@@ -377,6 +387,10 @@ func main() {
 
 	if opts.SaveTexFile {
 		err = os.Rename(ct.CompileFilename(), "./"+OutputName+".tex")
+		if err != nil {
+			log.Critical(err)
+			os.Exit(1)
+		}
 	}
 
 }
