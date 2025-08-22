@@ -122,6 +122,19 @@ func processHttp(httpobject string) string {
 	return strings.Join(output, "\r\n")
 }
 
+// Sometimes URLs need to be seqplit too
+func processURL(url string) string {
+	url = sanitize(url)
+	log.Debug("Processing URL")
+	if len(url) > MAX {
+		url = "\\seqsplit{" + url + "}"
+	} else {
+		url = "\\url{" + url + "}"
+	}
+
+	return url
+}
+
 // Fix LaTeX unfriendly characters
 func sanitize(input string) string {
 
@@ -147,6 +160,9 @@ func preprocess(matches []Match) []Match {
 
 		// Rewrite the severity for pretier printing
 		match.Info.Severity = cases.Title(language.English, cases.NoLower).String(match.Info.Severity)
+
+		match.MatchedAt = processURL(match.MatchedAt)
+		log.Debug(match.MatchedAt)
 
 		// Process requests(?)
 		match.Request = processHttp(match.Request)
@@ -358,6 +374,41 @@ func main() {
 
 	// Run pdflatex
 	ct.SetCompileFilename(tempFile.Name())
+
+	if opts.SaveTexFile {
+		srcFile, err := os.Open(ct.CompileFilename())
+		if err != nil {
+			log.Critical(err)
+			os.Exit(1)
+		}
+		defer func() {
+			err := srcFile.Close()
+			if err != nil {
+				log.Critical(err)
+				os.Exit(1)
+			}
+		}()
+
+		dstFile, err := os.Create("./" + OutputName + ".tex")
+		if err != nil {
+			log.Critical(err)
+			os.Exit(1)
+		}
+		defer func() {
+			err := dstFile.Close()
+			if err != nil {
+				log.Critical(err)
+				os.Exit(1)
+			}
+		}()
+
+		_, err = io.Copy(dstFile, srcFile)
+		if err != nil {
+			log.Critical(err)
+			os.Exit(1)
+		}
+	}
+
 	log.Debug("Generating PDF file:", ct.CompileFilenamePdf())
 
 	// Because LaTeX is voodoo, we have to run it more than once to get
@@ -383,14 +434,6 @@ func main() {
 	if err != nil {
 		log.Critical(err)
 		os.Exit(1)
-	}
-
-	if opts.SaveTexFile {
-		err = os.Rename(ct.CompileFilename(), "./"+OutputName+".tex")
-		if err != nil {
-			log.Critical(err)
-			os.Exit(1)
-		}
 	}
 
 }
